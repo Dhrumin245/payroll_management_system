@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Payroll Summary — {{ period_label }} — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <div class="page-header">
+        <h1>Payroll Summary — {{ period_label }}</h1>
+        <div>
+            <span class="badge-pill badge-active">Completed</span>
+            <a href="/payroll/{{ run.id }}/export" class="btn btn-secondary btn-sm">Export Summary (CSV)</a>
+        </div>
+    </div>
+    <p class="text-muted">Run on {{ run.run_date.strftime("%Y-%m-%d %H:%M") }}</p>
+
+    <div class="summary-cards summary-cards--four-col">
+        <div class="card">
+            <div class="summary-card__label">Total Employees</div>
+            <div class="summary-card__value font-mono">{{ run.employee_count }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Total Gross Pay</div>
+            <div class="summary-card__value font-mono">₹{{ "{:,.2f}".format(run.total_gross) }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Total Deductions</div>
+            <div class="summary-card__value font-mono">₹{{ "{:,.2f}".format(run.total_deductions) }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Total Net Pay</div>
+            <div class="summary-card__value font-mono">₹{{ "{:,.2f}".format(run.total_net_pay) }}</div>
+        </div>
+    </div>
+
+    <table class="app-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th class="text-end">Gross Pay</th>
+                <th class="text-end">Deductions</th>
+                <th class="text-end">Net Pay</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in line_items %}
+            <tr>
+                <td>{{ item.employee_name_snapshot }}</td>
+                <td class="font-mono">{{ item.employee_code_snapshot }}</td>
+                <td class="text-end font-mono">₹{{ "{:,.2f}".format(item.gross_pay) }}</td>
+                <td class="text-end font-mono">₹{{ "{:,.2f}".format(item.total_deductions) }}</td>
+                <td class="text-end font-mono">₹{{ "{:,.2f}".format(item.net_pay) }}</td>
+                <td><a href="/payroll/{{ run.id }}/payslip/{{ item.employee_id }}" class="btn btn-secondary btn-sm">Download Payslip</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="/payroll" class="btn btn-secondary" style="margin-top: var(--space-4);">Back to Payroll History</a>
+</div>
+{% endblock %}

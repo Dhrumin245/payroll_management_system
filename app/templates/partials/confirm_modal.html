@@ -1,0 +1,30 @@
+{#
+  Reusable confirmation modal (App Flow §3.11) — used by Employee List and
+  Employee Detail for Deactivate/Reactivate in Phase 4a. Not called from any
+  page yet; this is the component itself, ready to import:
+
+    {% from "partials/confirm_modal.html" import confirm_modal %}
+    {{ confirm_modal("deactivate-emp-12", "Deactivate Aisha Kapoor?",
+                     "They will be excluded from future payroll runs.",
+                     "/employees/12/deactivate", confirm_label="Deactivate",
+                     danger=True, csrf_token=csrf_token) }}
+
+  Then trigger it via a normal button: onclick="openModal('deactivate-emp-12')"
+  (see app/static/js/modal.js for open/close behavior).
+#}
+{% macro confirm_modal(modal_id, title, message, confirm_url, confirm_label="Confirm", danger=False, csrf_token="") %}
+<div class="modal-backdrop" id="{{ modal_id }}-backdrop" hidden onclick="closeModal('{{ modal_id }}')"></div>
+<div class="app-modal" id="{{ modal_id }}" role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title" hidden>
+    <div class="app-modal__card">
+        <h2 id="{{ modal_id }}-title">{{ title }}</h2>
+        <p>{{ message }}</p>
+        <form method="post" action="{{ confirm_url }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="app-modal__actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('{{ modal_id }}')">Cancel</button>
+                <button type="submit" class="btn {{ 'btn-danger' if danger else 'btn-primary' }}">{{ confirm_label }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endmacro %}

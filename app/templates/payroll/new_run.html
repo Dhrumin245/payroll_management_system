@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Run Payroll — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container" style="max-width: 640px;">
+    <h1>Run Payroll</h1>
+
+    <div class="card">
+        <div class="form-group">
+            <label for="period-select">Period</label>
+            <select id="period-select" class="form-control" onchange="window.location.href = '/payroll/new?period=' + this.value">
+                {% for value, label in period_options %}
+                <option value="{{ value }}" {{ "selected" if value == period else "" }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if already_run %}
+        <div class="card locked-banner">
+            <p style="margin: 0;">Payroll for this period has already been processed. <a href="/payroll">View payroll history</a></p>
+        </div>
+        {% elif active_count == 0 %}
+        <div class="card locked-banner">
+            <p style="margin: 0;">No active employees to process.</p>
+        </div>
+        {% else %}
+        <p><strong>{{ active_count }}</strong> active employee(s) will be included.</p>
+        {% if missing_count > 0 %}
+        <p style="color: var(--color-brick);">
+            Attendance incomplete — {{ missing_count }} employee(s) missing.
+            <a href="/attendance/{{ period }}">Complete attendance</a>
+        </p>
+        {% else %}
+        <p style="color: var(--color-forest);">Attendance complete.</p>
+        {% endif %}
+        {% endif %}
+
+        <form method="post" action="/payroll/run" style="margin-top: var(--space-4);">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="period" value="{{ period }}">
+            <button type="submit" class="btn btn-primary" {{ "disabled" if (already_run or active_count == 0 or missing_count > 0) else "" }}>
+                Run Payroll
+            </button>
+            <a href="/payroll" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

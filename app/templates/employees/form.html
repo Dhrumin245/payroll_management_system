@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% from "partials/confirm_modal.html" import confirm_modal %}
+{% block title %}{{ "Add Employee" if mode == "create" else "Edit " ~ employee.full_name }} — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container" style="max-width: 720px;">
+    <div class="page-header">
+        <h1>{{ "Add Employee" if mode == "create" else employee.full_name }}</h1>
+        {% if mode == "edit" %}
+        <div>
+            {% if employee.status == "active" %}
+            <span class="badge-pill badge-active">Active</span>
+            <button type="button" class="btn btn-danger btn-sm" onclick="openModal('deactivate-detail')">Deactivate</button>
+            {% else %}
+            <span class="badge-pill badge-inactive">Inactive</span>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openModal('reactivate-detail')">Reactivate</button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <form method="post" action="{{ '/employees/new' if mode == 'create' else '/employees/' ~ employee.id }}" class="card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <h2>Personal Details</h2>
+        <div class="form-group">
+            <label for="full_name">Full Name *</label>
+            <input type="text" id="full_name" name="full_name" class="form-control" value="{{ field_values.full_name }}" required>
+            {% if errors.full_name %}<p class="field-error">{{ errors.full_name }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="employee_code">Employee Code *</label>
+            <input type="text" id="employee_code" name="employee_code" class="form-control" value="{{ field_values.employee_code }}" required>
+            {% if errors.employee_code %}<p class="field-error">{{ errors.employee_code }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="designation">Designation *</label>
+            <input type="text" id="designation" name="designation" class="form-control" value="{{ field_values.designation }}" required>
+            {% if errors.designation %}<p class="field-error">{{ errors.designation }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="joining_date">Joining Date *</label>
+            <input type="date" id="joining_date" name="joining_date" class="form-control" value="{{ field_values.joining_date }}" required>
+            {% if errors.joining_date %}<p class="field-error">{{ errors.joining_date }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" class="form-control" value="{{ field_values.email }}">
+        </div>
+        <div class="form-group">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" name="phone" class="form-control" value="{{ field_values.phone }}">
+        </div>
+
+        <h2>Bank Details</h2>
+        <div class="form-group">
+            <label for="account_holder_name">Account Holder Name</label>
+            <input type="text" id="account_holder_name" name="account_holder_name" class="form-control" value="{{ field_values.account_holder_name }}">
+            {% if errors.account_holder_name %}<p class="field-error">{{ errors.account_holder_name }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="account_number">Account Number</label>
+            <input type="text" id="account_number" name="account_number" class="form-control" value="{{ field_values.account_number }}"
+                   {% if employee and employee.bank_details %}placeholder="Currently ending in {{ employee.bank_details.account_number_last4 }} — leave blank to keep unchanged"{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="ifsc_code">IFSC Code</label>
+            <input type="text" id="ifsc_code" name="ifsc_code" class="form-control" value="{{ field_values.ifsc_code }}">
+        </div>
+        <div class="form-group">
+            <label for="bank_name">Bank Name</label>
+            <input type="text" id="bank_name" name="bank_name" class="form-control" value="{{ field_values.bank_name }}">
+        </div>
+
+        <h2>Salary Structure</h2>
+        <div class="form-group">
+            <label for="basic_pay">Basic Pay *</label>
+            <input type="number" step="0.01" id="basic_pay" name="basic_pay" class="form-control" value="{{ field_values.basic_pay }}" required>
+            {% if errors.basic_pay %}<p class="field-error">{{ errors.basic_pay }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="hra">HRA</label>
+            <input type="number" step="0.01" id="hra" name="hra" class="form-control" value="{{ field_values.hra }}">
+            {% if errors.hra %}<p class="field-error">{{ errors.hra }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+            <label for="conveyance_allowance">Conveyance Allowance</label>
+            <input type="number" step="0.01" id="conveyance_allowance" name="conveyance_allowance" class="form-control" value="{{ field_values.conveyance_allowance }}">
+            {% if errors.conveyance_allowance %}<p class="field-error">{{ errors.conveyance_allowance }}</p>{% endif %}
+        </div>
+
+        <h3>Allowances</h3>
+        <div id="allowances-container">
+            {% for ctype, cname, camount in existing_components if ctype == "allowance" %}
+            <div class="dynamic-row">
+                <input type="hidden" name="component_type" value="allowance">
+                <input type="text" name="component_name" value="{{ cname }}" placeholder="e.g. Special Allowance" class="form-control">
+                <input type="number" step="0.01" name="component_amount" value="{{ camount }}" placeholder="Amount" class="form-control">
+                <button type="button" data-row-remove class="btn btn-secondary btn-sm">Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+        <template id="allowances-container-template">
+            <div class="dynamic-row">
+                <input type="hidden" name="component_type" value="allowance">
+                <input type="text" name="component_name" placeholder="e.g. Special Allowance" class="form-control">
+                <input type="number" step="0.01" name="component_amount" placeholder="Amount" class="form-control">
+                <button type="button" data-row-remove class="btn btn-secondary btn-sm">Remove</button>
+            </div>
+        </template>
+        <button type="button" data-row-adder="allowances-container" class="btn btn-secondary btn-sm">+ Add allowance</button>
+
+        <h3 style="margin-top: var(--space-4);">Deductions</h3>
+        <div id="deductions-container">
+            {% for ctype, cname, camount in existing_components if ctype == "deduction" %}
+            <div class="dynamic-row">
+                <input type="hidden" name="component_type" value="deduction">
+                <input type="text" name="component_name" value="{{ cname }}" placeholder="e.g. Professional Tax" class="form-control">
+                <input type="number" step="0.01" name="component_amount" value="{{ camount }}" placeholder="Amount" class="form-control">
+                <button type="button" data-row-remove class="btn btn-secondary btn-sm">Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+        <template id="deductions-container-template">
+            <div class="dynamic-row">
+                <input type="hidden" name="component_type" value="deduction">
+                <input type="text" name="component_name" placeholder="e.g. Professional Tax" class="form-control">
+                <input type="number" step="0.01" name="component_amount" placeholder="Amount" class="form-control">
+                <button type="button" data-row-remove class="btn btn-secondary btn-sm">Remove</button>
+            </div>
+        </template>
+        <button type="button" data-row-adder="deductions-container" class="btn btn-secondary btn-sm">+ Add deduction</button>
+
+        <div style="margin-top: var(--space-5); display: flex; gap: var(--space-3);">
+            <button type="submit" class="btn btn-primary">Save Employee</button>
+            <a href="/employees" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+
+    {% if mode == "edit" %}
+    <section style="margin-top: var(--space-5);">
+        <h2>Attendance History</h2>
+        <p class="text-muted">No attendance records yet.</p>
+    </section>
+
+    <section style="margin-top: var(--space-4);">
+        <h2>Payroll History</h2>
+        <p class="text-muted">This employee hasn't been included in a payroll run yet.</p>
+    </section>
+    {% endif %}
+</div>
+
+{% if mode == "edit" %}
+    {% if employee.status == "active" %}
+        {{ confirm_modal("deactivate-detail", "Deactivate " ~ employee.full_name ~ "?", "They will be excluded from future payroll runs.", "/employees/" ~ employee.id ~ "/deactivate", confirm_label="Deactivate", danger=True, csrf_token=csrf_token) }}
+    {% else %}
+        {{ confirm_modal("reactivate-detail", "Reactivate " ~ employee.full_name ~ "?", "They will be included in future payroll runs again.", "/employees/" ~ employee.id ~ "/reactivate", confirm_label="Reactivate", danger=False, csrf_token=csrf_token) }}
+    {% endif %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/dynamic_rows.js"></script>
+{% endblock %}

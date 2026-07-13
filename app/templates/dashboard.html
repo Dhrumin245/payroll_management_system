@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <h1 class="display-heading">Welcome, {{ user.username }}</h1>
+
+    {% if not dummy.has_any_employees %}
+    <div class="card locked-banner" style="margin-bottom: var(--space-4);">
+        <p style="margin: 0;">No employees yet. <a href="/employees/new">Add your first employee</a> to get started.</p>
+    </div>
+    {% endif %}
+
+    <div class="summary-cards">
+        <div class="card">
+            <div class="summary-card__label">Active Employees</div>
+            <div class="summary-card__value font-mono">{{ dummy.active_employees }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Last Payroll Run</div>
+            <div class="summary-card__value">{{ dummy.last_run_period }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Last Run Net Pay</div>
+            <div class="summary-card__value font-mono">{{ dummy.last_run_net_pay }}</div>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <a href="/employees/new" class="btn btn-primary">+ Add Employee</a>
+        <a href="/attendance" class="btn btn-primary">Enter Attendance</a>
+        <a href="/payroll/new" class="btn btn-primary">Run Payroll</a>
+    </div>
+
+    <section>
+        <h2>Recent Payroll Runs</h2>
+        {% if not dummy.has_any_runs %}
+        <p class="text-muted">No payroll runs yet.</p>
+        {% else %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Run Date</th>
+                    <th class="text-end">Employees</th>
+                    <th class="text-end">Total Net Pay</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in dummy.recent_runs %}
+                <tr>
+                    <td><a href="/payroll/{{ run.id }}">{{ run.period }}</a></td>
+                    <td class="font-mono">{{ run.run_date }}</td>
+                    <td class="text-end font-mono">{{ run.employees }}</td>
+                    <td class="text-end font-mono">{{ run.net_pay }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

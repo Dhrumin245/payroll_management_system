@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Payroll Management System</title>
+</head>
+<!-- Plain/unstyled placeholder — Phase 3-4 build the real Dashboard (summary
+     cards, quick actions, recent runs table) per App Flow Screen 2 / UI/UX
+     Brief §6. This exists now only to prove the auth wall works end to end. -->
+<body style="font-family: sans-serif; max-width: 640px; margin: 4rem auto; color: #232830;">
+    {% for f in flashes %}
+        <p style="color: {{ '#B54B3F' if f.category == 'error' else '#2E7D5B' }};">{{ f.message }}</p>
+    {% endfor %}
+
+    <h1>Welcome, {{ user.username }}</h1>
+    <p>Phase 1 checkpoint: you're logged in and viewing a protected route.</p>
+
+    <form method="post" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Log Out</button>
+    </form>
+</body>
+</html>

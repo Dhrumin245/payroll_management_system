@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: payroll
+      POSTGRES_PASSWORD: payroll
+      POSTGRES_DB: payroll
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payroll"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://payroll:payroll@db:5432/payroll
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-me}
+      BANK_ENCRYPTION_KEY: ${BANK_ENCRYPTION_KEY:?set BANK_ENCRYPTION_KEY in your shell or a .env file before running compose}
+      ENVIRONMENT: production
+      COMPANY_NAME: ${COMPANY_NAME:-Your Company Name}
+      COMPANY_ADDRESS: ${COMPANY_ADDRESS:-}
+    ports:
+      - "8000:8000"
+    # Migrations run on every container start here, for local-dev
+    # convenience. In production (Phase 7's deploy guide), run them as a
+    # separate one-off step instead -- automatic migration-on-boot is risky
+    # once more than one instance could start concurrently.
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  postgres_data:

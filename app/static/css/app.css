@@ -1,0 +1,442 @@
+/* ============================================================
+   Design tokens — UI/UX Brief §10 ("Ledger Clarity")
+   ============================================================ */
+:root {
+  --color-ink: #1B2A4A;
+  --color-brass: #B8863B;
+  --color-forest: #2E7D5B;
+  --color-brick: #B54B3F;
+  --color-bg: #F6F7F9;
+  --color-surface: #FFFFFF;
+  --color-border: #DCE0E6;
+  --color-text: #232830;
+  --color-text-muted: #6B7280;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+
+  --shadow-card: 0 1px 3px rgba(27, 42, 74, 0.08);
+}
+
+/* ---------- Base ---------- */
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+/* The "numbers always line up" signature (UI/UX Brief §1): every currency
+   figure, employee code, and date column uses this. */
+.font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.display-heading {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 36px;
+  color: var(--color-ink);
+  margin-bottom: var(--space-4);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+h2 { font-size: 18px; }
+
+a { color: var(--color-ink); }
+
+.text-muted { color: var(--color-text-muted); }
+.small-note { font-size: 13px; }
+
+/* ---------- Layout ---------- */
+.app-content { padding: var(--space-5) 0; }
+.app-container { max-width: 1140px; }
+
+@media (max-width: 768px) {
+  .app-content { padding: var(--space-3) 0; }
+}
+
+/* ---------- Navbar (App Flow §2 / UI/UX Brief §4) ---------- */
+.app-navbar {
+  height: 64px;
+  background-color: var(--color-ink);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+  gap: var(--space-4);
+  position: relative;
+}
+
+.app-navbar__brand a {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.app-navbar__links {
+  display: flex;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.app-navbar__links a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 14px;
+  padding: var(--space-2) 0;
+  border-bottom: 2px solid transparent;
+}
+
+.app-navbar__links a.active,
+.app-navbar__links a:hover {
+  color: #fff;
+  border-bottom-color: var(--color-brass);
+}
+
+.app-navbar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+.app-navbar__logout-form { margin: 0; }
+
+.app-navbar__toggle {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+}
+
+.app-navbar__toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #fff;
+  margin: 4px 0;
+}
+
+@media (max-width: 768px) {
+  .app-navbar__toggle { display: block; }
+
+  .app-navbar__links {
+    display: none;
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background-color: var(--color-ink);
+    flex-direction: column;
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3);
+    z-index: 20;
+  }
+
+  .app-navbar__links.is-open { display: flex; }
+
+  .app-navbar__user span { display: none; } /* logout button stays visible */
+}
+
+/* ---------- Flash messages ---------- */
+.flash-container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.flash {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-3);
+  font-size: 14px;
+}
+
+.flash--success { background-color: rgba(46, 125, 91, 0.12); color: var(--color-forest); }
+.flash--error   { background-color: rgba(181, 75, 63, 0.12); color: var(--color-brick); }
+.flash--info    { background-color: rgba(27, 42, 74, 0.08); color: var(--color-ink); }
+.flash--warning { background-color: rgba(184, 134, 59, 0.15); color: var(--color-brass); }
+
+.flash__close {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: inherit;
+  line-height: 1;
+}
+
+/* ---------- Buttons (UI/UX Brief §5) ---------- */
+.btn {
+  font-family: var(--font-body);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary { background-color: var(--color-ink); color: #fff; }
+.btn-primary:hover { background-color: #142038; color: #fff; }
+
+.btn-danger { background-color: var(--color-brick); color: #fff; }
+.btn-danger:hover { background-color: #9c3f34; color: #fff; }
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+.btn-secondary:hover { background-color: var(--color-bg); }
+
+.btn-block { display: block; width: 100%; text-align: center; }
+.btn-sm { padding: var(--space-1) var(--space-2); font-size: 13px; }
+
+/* ---------- Cards ---------- */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-4);
+}
+
+/* ---------- Dashboard grid (App Flow Screen 2 / UI/UX Brief §6) ---------- */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.summary-card__label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.summary-card__value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.quick-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.quick-actions .btn { flex: 1; text-align: center; }
+
+/* Payroll Summary uses a 4-column variant (Total Employees/Gross/Deductions/Net) --
+   a dedicated class, not an inline style, so the mobile media query below can
+   still override it (inline styles would out-specificity any @media rule). */
+.summary-cards--four-col { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 768px) {
+  .summary-cards { grid-template-columns: 1fr; }
+  .summary-cards--four-col { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 576px) {
+  .quick-actions { flex-direction: column; }
+}
+
+/* ---------- Tables — no zebra striping, it fights the tabular-number
+   alignment that's this app's core legibility feature (UI/UX Brief §5) ---------- */
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.app-table th {
+  text-align: left;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+}
+
+.app-table tbody tr:hover { background-color: var(--color-bg); }
+.app-table .text-end { text-align: right; }
+
+/* ---------- Status badges — always paired with a text label, never
+   color-only (accessibility requirement, UI/UX Brief §5) ---------- */
+.badge-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-active { background-color: rgba(46, 125, 91, 0.12); color: var(--color-forest); }
+.badge-inactive { background-color: rgba(107, 114, 128, 0.15); color: var(--color-text-muted); }
+
+/* ---------- Forms ---------- */
+.form-group { margin-bottom: var(--space-3); }
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: var(--space-1);
+}
+
+.form-control {
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.form-control:focus {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 1px;
+}
+
+.field-error {
+  color: var(--color-brick);
+  font-size: 13px;
+  margin-top: var(--space-1);
+}
+
+/* ---------- Page header (list/detail screens) ---------- */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* ---------- Filter bar (Employee List) ---------- */
+.filter-bar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.filter-bar .form-control { width: auto; }
+
+/* ---------- Dynamic rows (salary allowances/deductions) ---------- */
+.dynamic-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  align-items: center;
+}
+
+.dynamic-row .form-control { flex: 1; }
+
+@media (max-width: 576px) {
+  .dynamic-row { flex-wrap: wrap; }
+}
+
+/* ---------- Auth layout (Login, error pages) ---------- */
+.auth-body { background-color: var(--color-bg); }
+
+.auth-container {
+  max-width: 400px;
+  margin: 4rem auto;
+  padding: 0 var(--space-4);
+}
+
+.auth-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+/* ---------- Confirmation modal (App Flow §3.11) ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(27, 42, 74, 0.4);
+  z-index: 30;
+}
+
+.app-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 31;
+  width: 90%;
+  max-width: 420px;
+}
+
+.app-modal__card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-card);
+}
+
+.app-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* ---------- Locked period banner (Attendance) ---------- */
+.locked-banner {
+  background-color: rgba(184, 134, 59, 0.1);
+  border-color: var(--color-brass);
+  margin-bottom: var(--space-4);
+}
+
+/* ---------- Error pages (App Flow §4.2-4.3) ---------- */
+.error-page {
+  max-width: 480px;
+  margin: 6rem auto;
+  text-align: center;
+  padding: 0 var(--space-4);
+}

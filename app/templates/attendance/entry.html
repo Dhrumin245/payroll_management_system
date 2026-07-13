@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Attendance — {{ period_label }} — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <div class="page-header">
+        <h1>Attendance — {{ period_label }}</h1>
+        <select class="form-control" style="width: auto;" onchange="window.location.href = '/attendance/' + this.value">
+            {% for value, label in period_options %}
+            <option value="{{ value }}" {{ "selected" if value==period else "" }}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {% if not has_active_employees %}
+    <div class="card" style="text-align: center;">
+        <p>No active employees to record attendance for.</p>
+        <a href="/employees/new" class="btn btn-primary">+ Add Employee</a>
+    </div>
+    {% else %}
+
+    {% if locked %}
+    <div class="card locked-banner">
+        <p style="margin: 0;"><strong>Payroll has already been run for this period. Attendance is locked.</strong></p>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/attendance/{{ period }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th class="font-mono">Code</th>
+                    <th>Days Present</th>
+                    <th>Days on Leave</th>
+                    <th class="text-end">Working Days</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.employee.full_name }}</td>
+                    <td class="font-mono">{{ row.employee.employee_code }}</td>
+                    <td>
+                        <input type="hidden" name="employee_id" value="{{ row.employee.id }}">
+                        <input type="number" step="0.5" min="0" name="days_present" value="{{ row.days_present }}"
+                            class="form-control" {{ "disabled" if locked else "" }}>
+                        {% if errors["present_" ~ row.employee.id] %}<p class="field-error">{{ errors["present_" ~
+                            row.employee.id] }}</p>{% endif %}
+                        {% if errors["row_" ~ row.employee.id] %}<p class="field-error">{{ errors["row_" ~
+                            row.employee.id] }}</p>{% endif %}
+                    </td>
+                    <td>
+                        <input type="number" step="0.5" min="0" name="days_on_leave" value="{{ row.days_on_leave }}"
+                            class="form-control" {{ "disabled" if locked else "" }}>
+                        {% if errors["leave_" ~ row.employee.id] %}<p class="field-error">{{ errors["leave_" ~
+                            row.employee.id] }}</p>{% endif %}
+                    </td>
+                    <td class="text-end font-mono">{{ working_days }}</td>
+                    <td>{% if row.saved %}<span class="badge-pill badge-active">Saved</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if not locked %}
+        <div style="margin-top: var(--space-4);">
+            <button type="submit" class="btn btn-primary">Save Attendance</button>
+        </div>
+        {% endif %}
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
