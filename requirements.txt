@@ -17,7 +17,9 @@ passlib[bcrypt]
 bcrypt<4.1             # passlib 1.7.4 breaks against bcrypt>=4.1 (removed __about__
                         # attribute) — this pin avoids a known password-verification bug
 slowapi               # rate limiting (used on /login)
+itsdangerous>=2.1.0,<3  # required by Starlette SessionMiddleware
 cryptography          # field-level encryption for bank account numbers (Phase 2+)
+
 
 # CLI (create-admin)
 typer
