@@ -4,7 +4,7 @@ testable without going through HTTP (TRD §2's layered architecture).
 """
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
@@ -181,13 +181,68 @@ def validate_employee_form(db: Session, data: EmployeeFormData, existing_employe
     return errors
 
 
-def save_employee(db: Session, data: EmployeeFormData, employee: Optional[Employee] = None) -> Employee:
+def _salary_structure_changed(salary_structure: SalaryStructure, data: EmployeeFormData) -> bool:
+    try:
+        new_basic = Decimal(data.basic_pay or "0")
+    except InvalidOperation:
+        new_basic = Decimal("0")
+    if new_basic != salary_structure.basic_pay:
+        return True
+
+    try:
+        new_hra = Decimal(data.hra or "0")
+    except InvalidOperation:
+        new_hra = Decimal("0")
+    if new_hra != salary_structure.hra:
+        return True
+
+    try:
+        new_conv = Decimal(data.conveyance_allowance or "0")
+    except InvalidOperation:
+        new_conv = Decimal("0")
+    if new_conv != salary_structure.conveyance_allowance:
+        return True
+
+    # Compare dynamic components
+    old_components = sorted(
+        [(c.component_type, c.name.strip(), c.amount) for c in salary_structure.components],
+        key=lambda x: (x[0], x[1])
+    )
+    
+    new_components_raw = []
+    for ctype, cname, camount in zip(data.component_types, data.component_names, data.component_amounts):
+        if cname.strip():
+            try:
+                amt = Decimal(camount or "0")
+            except InvalidOperation:
+                amt = Decimal("0")
+            new_components_raw.append((ctype, cname.strip(), amt))
+    new_components = sorted(new_components_raw, key=lambda x: (x[0], x[1]))
+
+    if len(old_components) != len(new_components):
+        return True
+
+    for old_c, new_c in zip(old_components, new_components):
+        if old_c[0] != new_c[0] or old_c[1] != new_c[1] or old_c[2] != new_c[2]:
+            return True
+
+    return False
+
+
+def save_employee(
+    db: Session,
+    data: EmployeeFormData,
+    employee: Optional[Employee] = None,
+    user_id: Optional[int] = None,
+) -> Employee:
     """
     Creates a new employee or updates an existing one. Caller must have
     already validated via validate_employee_form(). Salary components are
     fully replaced on every save (deleted and re-inserted) rather than
     diffed in place -- simpler and correct, since the form doesn't track
     individual component IDs.
+
+    Saves a history snapshot if the salary structure is modified.
     """
     joining_date = datetime.strptime(data.joining_date, "%Y-%m-%d").date()
 
@@ -219,9 +274,21 @@ def save_employee(db: Session, data: EmployeeFormData, employee: Optional[Employ
         employee.bank_details.bank_name = data.bank_name.strip() or None
 
     salary_structure = employee.salary_structure
+    
+    # Check if there is an existing structure and if it has changed
+    has_changed = False
+    if salary_structure is not None:
+        has_changed = _salary_structure_changed(salary_structure, data)
+        if has_changed:
+            from app.services.salary_history_service import snapshot_salary
+            snapshot_salary(db, salary_structure, effective_from=salary_structure.effective_from, created_by_user_id=user_id)
+            
     if salary_structure is None:
-        salary_structure = SalaryStructure(employee_id=employee.id)
+        salary_structure = SalaryStructure(employee_id=employee.id, effective_from=date.today())
         db.add(salary_structure)
+    elif has_changed:
+        salary_structure.effective_from = date.today()
+
     salary_structure.basic_pay = Decimal(data.basic_pay)
     salary_structure.hra = Decimal(data.hra or "0")
     salary_structure.conveyance_allowance = Decimal(data.conveyance_allowance or "0")

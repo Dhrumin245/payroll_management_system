@@ -34,3 +34,7 @@ python-dotenv
 pytest
 pytest-cov
 httpx                 # required by FastAPI's TestClient
+
+# Operational Integrations & Excel (Phase 13 / 14)
+aiosmtplib
+openpyxl

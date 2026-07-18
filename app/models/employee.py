@@ -45,6 +45,16 @@ class Employee(Base):
     payroll_line_items = relationship(
         "PayrollLineItem", back_populates="employee", passive_deletes=True
     )
+    # Phase 11 — salary revision history and variable pay
+    salary_history = relationship(
+        "SalaryStructureHistory",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        order_by="SalaryStructureHistory.effective_from.desc()",
+    )
+    variable_pay_items = relationship(
+        "VariablePayItem", back_populates="employee", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Employee id={self.id} code={self.employee_code!r} status={self.status!r}>"

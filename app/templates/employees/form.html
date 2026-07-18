@@ -9,6 +9,7 @@
         <div>
             {% if employee.status == "active" %}
             <span class="badge-pill badge-active">Active</span>
+            <a href="/employees/{{ employee.id }}/variable-pay" class="btn btn-secondary btn-sm" style="margin-right: var(--space-2);">Variable Pay</a>
             <button type="button" class="btn btn-danger btn-sm" onclick="openModal('deactivate-detail')">Deactivate</button>
             {% else %}
             <span class="badge-pill badge-inactive">Inactive</span>
@@ -138,6 +139,58 @@
 
     {% if mode == "edit" %}
     <section style="margin-top: var(--space-5);">
+        <h2>Salary Revision History</h2>
+        {% if not salary_history %}
+        <p class="text-muted">No salary revisions recorded yet.</p>
+        {% else %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Effective From</th>
+                    <th>Superseded At</th>
+                    <th>Basic Pay</th>
+                    <th>HRA</th>
+                    <th>Conveyance</th>
+                    <th>Other Components</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in salary_history %}
+                <tr>
+                    <td><strong>{{ h.effective_from.strftime('%Y-%m-%d') if h.effective_from else '—' }}</strong></td>
+                    <td class="text-muted">
+                        {% if h.superseded_at %}
+                        {{ h.superseded_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                        <span class="badge" style="background: var(--color-forest);">Current Snapshot</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ h.basic_pay }}</td>
+                    <td>{{ h.hra }}</td>
+                    <td>{{ h.conveyance_allowance }}</td>
+                    <td style="font-size: 0.9em; max-width: 250px; line-height: 1.2;">
+                        {% set comp_list = h.components %}
+                        {% if not comp_list %}
+                        <span class="text-muted">—</span>
+                        {% else %}
+                            {% for c in comp_list %}
+                            <div style="margin-bottom: 2px;">
+                                <span class="badge" style="background: {% if c.type == 'allowance' %}#e3f2fd{% else %}#ffebee{% endif %}; color: {% if c.type == 'allowance' %}#0d47a1{% else %}#b71c1c{% endif %}; font-size: 0.8em; padding: 2px 4px;">
+                                    {{ c.type|capitalize }}
+                                </span>
+                                <strong>{{ c.name }}</strong>: {{ c.amount }}
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+
+    <section style="margin-top: var(--space-4);">
         <h2>Attendance History</h2>
         <p class="text-muted">No attendance records yet.</p>
     </section>

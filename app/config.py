@@ -29,5 +29,13 @@ class Settings:
     SESSION_COOKIE_NAME: str = "payroll_session"
     SESSION_MAX_AGE_SECONDS: int = 60 * 60 * 8  # 8 hours
 
+    # Operational integrations: Email / SMTP (Phase 13)
+    SMTP_HOST: str = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.environ.get("SMTP_PORT", "587"))
+    SMTP_USER: str = os.environ.get("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.environ.get("SMTP_PASSWORD", "")
+    EMAIL_FROM: str = os.environ.get("EMAIL_FROM", "")
+    EMAIL_ENABLED: bool = os.environ.get("EMAIL_ENABLED", "false").lower() in ("true", "1", "yes")
+
 
 settings = Settings()

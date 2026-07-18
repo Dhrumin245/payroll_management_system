@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Payslip for {{ period_label }}</title>
+</head>
+<body style="font-family: sans-serif; line-height: 1.5; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="color: #1B2A4A; font-family: serif; border-bottom: 2px solid #B8863B; padding-bottom: 10px;">
+            {{ company_name }}
+        </h2>
+        <p>Dear {{ employee_name }},</p>
+        <p>Please find attached your payslip for the pay period <strong>{{ period_label }}</strong>.</p>
+        <p>If you have any questions regarding your salary or calculations, please reach out to the Finance / HR department.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="font-size: 12px; color: #777;">This is an automated system email. Please do not reply directly to this message.</p>
+    </div>
+</body>
+</html>

@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
-from app.exceptions import NotAuthenticatedException
+from app.exceptions import NotAuthenticatedException, NotAuthorizedException
 from app.models import User
 
 # --- Database session -------------------------------------------------------
@@ -89,4 +89,24 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         raise NotAuthenticatedException()
 
     request.session["last_activity"] = now.isoformat()
+    return user
+
+
+# --- Role guards -------------------------------------------------------------
+# These are FastAPI dependency factories that build on get_current_user and
+# raise NotAuthorizedException when the authenticated user lacks the required
+# role tier.  The exception is caught by the handler in main.py and rendered
+# as a 403 page — never a bare JSON response, since this is an HTMX/Jinja app.
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    """Only 'admin' role users may proceed.  Returns the user on success."""
+    if user.role != "admin":
+        raise NotAuthorizedException()
+    return user
+
+
+def require_manager_or_above(user: User = Depends(get_current_user)) -> User:
+    """Both 'admin' and 'manager' role users may proceed; 'employee' is denied."""
+    if user.role == "employee":
+        raise NotAuthorizedException()
     return user

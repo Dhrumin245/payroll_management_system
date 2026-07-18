@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Statutory Settings — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container" style="max-width: 600px;">
+    <div class="page-header" style="margin-bottom: var(--space-4);">
+        <div>
+            <a href="/dashboard" class="btn btn-secondary btn-sm" style="margin-bottom: var(--space-2); display: inline-block;">
+                &larr; Back to Dashboard
+            </a>
+            <h1 class="display-heading" style="margin-bottom: 0;">Statutory Settings</h1>
+            <p class="text-muted">Configure company-wide Provident Fund (PF), Employee State Insurance (ESI), and Professional Tax (PT) defaults.</p>
+        </div>
+    </div>
+
+    <!-- Main Settings Form -->
+    <form method="post" action="/settings/statutory" class="card" style="margin-bottom: var(--space-4);">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <h3 style="font-family: var(--font-display); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
+            Deduction Toggles
+        </h3>
+
+        <!-- Provident Fund Toggle -->
+        <div class="form-group">
+            <label for="pf_enabled" style="font-weight: 600;">Provident Fund (PF)</label>
+            <p class="text-muted small-note" style="margin-top: 0; margin-bottom: var(--space-1);">
+                When enabled, 12% of the employee's basic pay (capped at ₹1,800/month) is automatically deducted.
+            </p>
+            <select id="pf_enabled" name="pf_enabled" class="form-control">
+                <option value="true" {% if pf_enabled %}selected{% endif %}>Enabled</option>
+                <option value="false" {% if not pf_enabled %}selected{% endif %}>Disabled</option>
+            </select>
+        </div>
+
+        <!-- ESI Toggle -->
+        <div class="form-group">
+            <label for="esi_enabled" style="font-weight: 600;">Employee State Insurance (ESI)</label>
+            <p class="text-muted small-note" style="margin-top: 0; margin-bottom: var(--space-1);">
+                When enabled, 0.75% of the employee's gross pay is deducted (only applicable if monthly gross is ₹21,000 or below).
+            </p>
+            <select id="esi_enabled" name="esi_enabled" class="form-control">
+                <option value="true" {% if esi_enabled %}selected{% endif %}>Enabled</option>
+                <option value="false" {% if not esi_enabled %}selected{% endif %}>Disabled</option>
+            </select>
+        </div>
+
+        <!-- PT Toggle & State Selection -->
+        <div class="form-group" style="border-top: 1px solid var(--color-border); padding-top: var(--space-3); margin-top: var(--space-3);">
+            <label for="pt_enabled" style="font-weight: 600;">Professional Tax (PT)</label>
+            <p class="text-muted small-note" style="margin-top: 0; margin-bottom: var(--space-1);">
+                When enabled, Professional Tax is automatically computed based on the state-specific slabs and gross monthly pay.
+            </p>
+            <select id="pt_enabled" name="pt_enabled" class="form-control" style="margin-bottom: var(--space-2);">
+                <option value="true" {% if pt_enabled %}selected{% endif %}>Enabled</option>
+                <option value="false" {% if not pt_enabled %}selected{% endif %}>Disabled</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="pt_state" style="font-weight: 600;">Professional Tax State</label>
+            <select id="pt_state" name="pt_state" class="form-control">
+                {% for code, name in pt_states.items() %}
+                <option value="{{ code }}" {% if code == pt_state %}selected{% endif %}>{{ name }} ({{ code }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-top: var(--space-4); display: flex; gap: var(--space-2); justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+        </div>
+    </form>
+
+    <!-- Navigation Card for PT Slabs -->
+    <div class="card" style="background-color: var(--color-bg); border-style: dashed;">
+        <h4 style="margin-bottom: var(--space-2); font-family: var(--font-body); font-weight: 600;">Professional Tax Slab Management</h4>
+        <p class="text-muted small-note" style="margin-bottom: var(--space-3);">
+            Define state-specific gross income ranges and the monthly tax amount applicable to each range.
+        </p>
+        <a href="/settings/pt-slabs" class="btn btn-secondary">
+            Configure PT Slabs &rarr;
+        </a>
+    </div>
+</div>
+{% endblock %}

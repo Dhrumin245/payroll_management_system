@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Variable Pay — {{ employee.full_name }} — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container" style="max-width: 800px;">
+    <div class="page-header" style="margin-bottom: var(--space-4);">
+        <div>
+            <a href="/employees/{{ employee.id }}" class="btn btn-secondary btn-sm" style="margin-bottom: var(--space-2); display: inline-block;">
+                &larr; Back to Employee Details
+            </a>
+            <h1 class="display-heading">Variable Pay</h1>
+            <p class="text-muted" style="margin: 0;">Manage bonuses, reimbursements, and one-off deductions for <strong>{{ employee.full_name }}</strong> ({{ employee.employee_code }}).</p>
+        </div>
+    </div>
+
+    <!-- Period Selection -->
+    <div class="card" style="padding: var(--space-4); margin-bottom: var(--space-4);">
+        <form method="get" action="/employees/{{ employee.id }}/variable-pay" id="period-form">
+            <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: var(--space-3);">
+                <label for="period" style="font-weight: 600; margin: 0; white-space: nowrap;">Select Payroll Period:</label>
+                <select id="period" name="period" class="form-control" style="max-width: 250px;" onchange="document.getElementById('period-form').submit();">
+                    {% for val, label in period_options %}
+                    <option value="{{ val }}" {% if val == period %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Variable Pay Items Form -->
+    <form method="post" action="/employees/{{ employee.id }}/variable-pay" class="card" style="padding: var(--space-4);">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="period" value="{{ period }}">
+
+        <h3 style="font-family: var(--font-display); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">
+            Items for {{ period_label }}
+        </h3>
+
+        {% if not items %}
+        <p class="text-muted" id="no-items-message">No one-off bonuses or deductions configured for this period yet.</p>
+        {% endif %}
+
+        <div id="variable-items-container" style="display: flex; flex-direction: column; gap: var(--space-2);">
+            {% for item in items %}
+            <div class="dynamic-row" style="display: flex; gap: var(--space-2); align-items: center;">
+                <select name="item_type" class="form-control" style="flex: 1; min-width: 120px;" required>
+                    <option value="earning" {% if item.component_type == 'earning' %}selected{% endif %}>Earning / Bonus</option>
+                    <option value="deduction" {% if item.component_type == 'deduction' %}selected{% endif %}>One-off Deduction</option>
+                </select>
+                <input type="text" name="item_name" value="{{ item.name }}" placeholder="e.g. Q3 Performance Bonus" class="form-control" style="flex: 2; min-width: 200px;" required>
+                <input type="number" step="0.01" name="item_amount" value="{{ item.amount }}" placeholder="Amount" class="form-control" style="flex: 1; min-width: 100px;" required>
+                <button type="button" data-row-remove class="btn btn-secondary btn-sm" onclick="checkEmpty()">Remove</button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <template id="variable-items-container-template">
+            <div class="dynamic-row" style="display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-2);">
+                <select name="item_type" class="form-control" style="flex: 1; min-width: 120px;" required>
+                    <option value="earning" selected>Earning / Bonus</option>
+                    <option value="deduction">One-off Deduction</option>
+                </select>
+                <input type="text" name="item_name" placeholder="e.g. Bonus / Reimbursement" class="form-control" style="flex: 2; min-width: 200px;" required>
+                <input type="number" step="0.01" name="item_amount" placeholder="Amount" class="form-control" style="flex: 1; min-width: 100px;" required>
+                <button type="button" data-row-remove class="btn btn-secondary btn-sm" onclick="checkEmpty()">Remove</button>
+            </div>
+        </template>
+
+        <div style="margin-top: var(--space-4); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-border); padding-top: var(--space-3);">
+            <button type="button" data-row-adder="variable-items-container" class="btn btn-secondary btn-sm" onclick="hideEmptyMsg()">+ Add Item</button>
+            <div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dynamic_rows.js"></script>
+<script>
+    function hideEmptyMsg() {
+        var msg = document.getElementById('no-items-message');
+        if (msg) msg.style.display = 'none';
+    }
+    function checkEmpty() {
+        // Wait a tiny bit for the DOM remove to complete
+        setTimeout(function() {
+            var container = document.getElementById('variable-items-container');
+            var msg = document.getElementById('no-items-message');
+            if (container && msg && container.children.length === 0) {
+                msg.style.display = 'block';
+            }
+        }, 50);
+    }
+</script>
+{% endblock %}

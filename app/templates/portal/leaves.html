@@ -1,0 +1,117 @@
+{% extends "portal/portal_base.html" %}
+{% block title %}My Leaves — Employee Portal{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <h1 class="display-heading">My Leaves</h1>
+
+    <div class="row" style="gap: var(--space-4); margin-bottom: var(--space-5);">
+        <!-- Leave Balances -->
+        <div class="col-md-5 card" style="padding: var(--space-4);">
+            <h3 style="font-family: var(--font-display); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">Leave Balances ({{ current_year }})</h3>
+            {% if not balances %}
+            <p class="text-muted">No leave configurations defined.</p>
+            {% else %}
+            <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                {% for bal in balances %}
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--color-border); padding-bottom: var(--space-1);">
+                    <span><strong>{{ bal.leave_type.name }}</strong></span>
+                    <span class="font-mono">
+                        {{ bal.days_used }} used
+                        {% if bal.max_days is not none %}
+                        / {{ bal.max_days }} days
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Request Leave Form -->
+        <div class="col-md-6 card" style="padding: var(--space-4);">
+            <h3 style="font-family: var(--font-display); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">Apply for Leave</h3>
+            <form method="post" action="/portal/leaves/new">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                
+                <div class="mb-3">
+                    <label for="leave_type_id" class="form-label">Leave Type</label>
+                    <select class="form-select" id="leave_type_id" name="leave_type_id" required>
+                        {% for lt in leave_types %}
+                        <option value="{{ lt.id }}">{{ lt.name }}{% if not lt.is_paid %} (Unpaid){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="col">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="reason" class="form-label">Reason</label>
+                    <textarea class="form-control" id="reason" name="reason" rows="2" placeholder="Brief explanation (optional)"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Submit Application</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- History -->
+    <section>
+        <h2>Leave Application History</h2>
+        {% if not requests %}
+        <p class="text-muted">No leave requests submitted yet.</p>
+        {% else %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Submitted</th>
+                    <th>Leave Type</th>
+                    <th>Duration</th>
+                    <th>Reason</th>
+                    <th class="text-center">Status</th>
+                    <th>Approver / Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in requests %}
+                <tr>
+                    <td class="font-mono text-muted">{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ r.leave_type.name }}</td>
+                    <td>
+                        <strong>{{ r.start_date.strftime('%Y-%m-%d') }}</strong> to <strong>{{ r.end_date.strftime('%Y-%m-%d') }}</strong>
+                    </td>
+                    <td>{{ r.reason or '—' }}</td>
+                    <td class="text-center">
+                        {% if r.status == 'pending' %}
+                        <span class="badge" style="background: var(--color-text-muted);">Pending</span>
+                        {% elif r.status == 'approved' %}
+                        <span class="badge" style="background: var(--color-forest);">Approved</span>
+                        {% else %}
+                        <span class="badge" style="background: var(--color-brick);">Rejected</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.status == 'approved' %}
+                        Approved by {{ r.approved_by.username }}
+                        {% elif r.status == 'rejected' %}
+                        Rejected by {{ r.approved_by.username }}
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

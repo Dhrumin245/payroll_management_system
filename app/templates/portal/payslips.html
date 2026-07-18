@@ -1,0 +1,40 @@
+{% extends "portal/portal_base.html" %}
+{% block title %}My Payslips — Employee Portal{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <h1 class="display-heading">My Payslips</h1>
+
+    <section>
+        {% if not payslips %}
+        <p class="text-muted">No payslip records available yet.</p>
+        {% else %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Run Date</th>
+                    <th class="text-end">Gross Pay</th>
+                    <th class="text-end">Deductions</th>
+                    <th class="text-end">Net Pay</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in payslips %}
+                <tr>
+                    <td><strong>{{ item.payroll_run.period.strftime('%B %Y') }}</strong></td>
+                    <td class="font-mono">{{ item.payroll_run.run_date.strftime('%Y-%m-%d') }}</td>
+                    <td class="text-end font-mono">₹{{ "{:,.2f}".format(item.gross_pay) }}</td>
+                    <td class="text-end font-mono">₹{{ "{:,.2f}".format(item.total_deductions) }}</td>
+                    <td class="text-end font-mono"><strong>₹{{ "{:,.2f}".format(item.net_pay) }}</strong></td>
+                    <td class="text-end">
+                        <a href="/portal/payslips/{{ item.payroll_run_id }}" class="btn btn-secondary btn-sm">Download PDF</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

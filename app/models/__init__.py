@@ -5,6 +5,9 @@ from app.models.employee_bank_details import EmployeeBankDetails
 from app.models.payroll import PayrollLineItem, PayrollLineItemComponent, PayrollRun, Payslip
 from app.models.salary_structure import SalaryComponent, SalaryStructure
 from app.models.user import User
+from app.models.leave import LeaveType, LeaveRequest, LeaveBalance
+from app.models.variable_pay import SalaryStructureHistory, VariablePayItem
+from app.models.statutory import StatutoryConfig, PtSlab
 
 __all__ = [
     "Base",
@@ -18,4 +21,11 @@ __all__ = [
     "PayrollLineItem",
     "PayrollLineItemComponent",
     "Payslip",
+    "LeaveType",
+    "LeaveRequest",
+    "LeaveBalance",
+    "SalaryStructureHistory",
+    "VariablePayItem",
+    "StatutoryConfig",
+    "PtSlab",
 ]

@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_current_user, get_db, require_manager_or_above
 from app.flash import flash
 from app.models import AttendanceRecord, Employee, User
 from app.services.attendance_service import (
@@ -72,6 +72,10 @@ def attendance_entry_form(
     except InvalidPeriodError:
         raise HTTPException(status_code=404)
 
+    # Sync leaves to attendance records in the database before loading the grid
+    from app.services.leave_service import sync_attendance_from_leaves
+    sync_attendance_from_leaves(db, period_date)
+
     active_employees = db.query(Employee).filter(Employee.status == "active").order_by(Employee.employee_code).all()
     working_days = calculate_working_days(period_date)
     locked = is_period_locked(db, period_date)
@@ -103,7 +107,7 @@ def save_attendance(
     days_present: List[str] = Form(default=[]),
     days_on_leave: List[str] = Form(default=[]),
     csrf_token: str = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_manager_or_above),
     db: Session = Depends(get_db),
 ):
     verify_csrf(request, csrf_token)

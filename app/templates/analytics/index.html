@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Analytics — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <div class="page-header" style="margin-bottom: var(--space-4);">
+        <h1 class="display-heading" style="margin-bottom: 0;">Payroll & Workforce Analytics</h1>
+        <p class="text-muted">In-depth insights into financial disbursements and employee headcount trends.</p>
+    </div>
+
+    {% if not payroll_trend %}
+    <div class="card" style="padding: var(--space-5); text-align: center;">
+        <p class="text-muted" style="margin: 0;">No payroll history available to analyze. Run payroll to see analytics here.</p>
+    </div>
+    {% else %}
+
+    <!-- Grid of Primary Visualizations -->
+    <div class="analytics-grid" style="margin-top: var(--space-4);">
+        <div class="chart-card" style="grid-column: span 2;">
+            <h3 style="margin-bottom: var(--space-3);">Payroll Cost Evolution (Gross vs. Net Pay)</h3>
+            <div class="chart-container" style="height: 350px;">
+                <canvas id="analyticsSpendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3 style="margin-bottom: var(--space-3);">Salary Component Distribution</h3>
+            <p class="text-muted small-note" style="margin-top: -8px; margin-bottom: var(--space-3);">Based on components from the latest run: {{ comp_breakdown.period or 'N/A' }}</p>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="analyticsCompChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3 style="margin-bottom: var(--space-3);">Active Headcount Trend</h3>
+            <p class="text-muted small-note" style="margin-top: -8px; margin-bottom: var(--space-3);">Monthly total of active employees participating in payroll runs.</p>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="analyticsHeadcountChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filterable Payroll Runs History Table -->
+    <section style="margin-top: var(--space-5);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+            <h2>Historical Payroll Runs</h2>
+            <div>
+                <input type="text" id="runSearchInput" placeholder="Filter by period..." class="form-control" style="width: 240px; padding: 6px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 14px;">
+            </div>
+        </div>
+
+        <table class="app-table" id="runsHistoryTable">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Date Finalized</th>
+                    <th class="text-end">Active Headcount</th>
+                    <th class="text-end">Gross Disbursed</th>
+                    <th class="text-end">Deductions</th>
+                    <th class="text-end">Net Pay</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in payroll_trend | reverse %}
+                <tr class="run-row">
+                    <td class="run-period"><a href="/payroll/{{ run.period_raw }}">{{ run.period }}</a></td>
+                    <td class="font-mono">{{ run.period_raw }}-28</td>
+                    <td class="text-end font-mono">{{ run.employee_count }}</td>
+                    <td class="text-end font-mono">₹{{ "{:,.2f}".format(run.total_gross) }}</td>
+                    <td class="text-end font-mono">₹{{ "{:,.2f}".format(run.total_deductions) }}</td>
+                    <td class="text-end font-mono">₹{{ "{:,.2f}".format(run.total_net_pay) }}</td>
+                    <td class="text-end">
+                        <a href="/payroll/{{ run.period_raw }}/export-excel" class="btn btn-secondary btn-xs" style="padding: 2px 8px; font-size: 12px;">Excel</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+</div>
+
+{% if payroll_trend %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Search filter logic
+    const searchInput = document.getElementById("runSearchInput");
+    if (searchInput) {
+        searchInput.addEventListener("input", function() {
+            const query = this.value.toLowerCase().trim();
+            const rows = document.querySelectorAll(".run-row");
+            rows.forEach(row => {
+                const period = row.querySelector(".run-period").textContent.toLowerCase();
+                if (period.includes(query)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        });
+    }
+
+    // 1. Spend Trend Line Chart
+    const trendData = {{ payroll_trend | tojson }};
+    const labels = trendData.map(d => d.period);
+    const grossData = trendData.map(d => d.total_gross);
+    const deductionsData = trendData.map(d => d.total_deductions);
+    const netData = trendData.map(d => d.total_net_pay);
+
+    new Chart(document.getElementById("analyticsSpendChart"), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Gross Spend (₹)',
+                    data: grossData,
+                    borderColor: '#B8863B',
+                    backgroundColor: 'rgba(184, 134, 59, 0.05)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.25
+                },
+                {
+                    label: 'Deductions (₹)',
+                    data: deductionsData,
+                    borderColor: '#B54B3F',
+                    backgroundColor: 'rgba(181, 75, 63, 0.05)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.25
+                },
+                {
+                    label: 'Net Disbursed (₹)',
+                    data: netData,
+                    borderColor: '#1B2A4A',
+                    backgroundColor: 'rgba(27, 42, 74, 0.05)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.25
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) { return '₹' + value.toLocaleString(); }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Compensation Breakdown Chart
+    const compData = {{ comp_breakdown | tojson }};
+    new Chart(document.getElementById("analyticsCompChart"), {
+        type: 'doughnut',
+        data: {
+            labels: compData.categories,
+            datasets: [{
+                data: compData.values,
+                backgroundColor: [
+                    '#1B2A4A', '#B8863B', '#2E7D5B', '#B54B3F',
+                    '#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#6B7280'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    // 3. Headcount Trend Chart
+    const headcountData = {{ headcount_trend | tojson }};
+    new Chart(document.getElementById("analyticsHeadcountChart"), {
+        type: 'bar',
+        data: {
+            labels: headcountData.map(d => d.period),
+            datasets: [{
+                label: 'Employees Active',
+                data: headcountData.map(d => d.employee_count),
+                backgroundColor: '#2E7D5B',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -7,6 +7,10 @@
         <div>
             <span class="badge-pill badge-active">Completed</span>
             <a href="/payroll/{{ run.id }}/export" class="btn btn-secondary btn-sm">Export Summary (CSV)</a>
+            <a href="/payroll/{{ run.id }}/export-excel" class="btn btn-secondary btn-sm">Export Summary (Excel)</a>
+            {% if user.role == 'admin' %}
+            <a href="/payroll/{{ run.id }}/bank-file" class="btn btn-secondary btn-sm">Download Bank Payout File</a>
+            {% endif %}
         </div>
     </div>
     <p class="text-muted">Run on {{ run.run_date.strftime("%Y-%m-%d %H:%M") }}</p>

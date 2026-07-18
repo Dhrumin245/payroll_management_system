@@ -5,6 +5,7 @@ from the router (TRD §2's layered architecture) and from the pure
 calculation logic in payroll_engine.py.
 """
 from datetime import date, datetime, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from typing import List
 
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.models import Employee, PayrollLineItem, PayrollLineItemComponent, PayrollRun
 from app.services.attendance_service import get_existing_record, is_period_locked
 from app.services.payroll_engine import PayrollInput, SalaryComponentInput, calculate_payroll_run
+from app.services.statutory_service import get_statutory_deductions
 
 
 def active_employees_missing_attendance(db: Session, period_date: date) -> List[Employee]:
@@ -58,6 +60,42 @@ def run_payroll(db: Session, period_date: date, run_by_user_id: int) -> PayrollR
             SalaryComponentInput(component_type=c.component_type, name=c.name, amount=c.amount)
             for c in salary.components
         ]
+
+        # Fetch and inject variable pay items for this employee & period
+        from app.services.salary_history_service import get_variable_pay_for_period
+        variable_items = get_variable_pay_for_period(db, employee.id, period_date)
+        for item in variable_items:
+            components.append(
+                SalaryComponentInput(
+                    component_type=item.component_type,
+                    name=item.name,
+                    amount=item.amount
+                )
+            )
+
+        # Pre-compute prorated gross pay to determine statutory deductions
+        dp = Decimal(str(attendance.days_present))
+        twd = Decimal(str(attendance.total_working_days))
+
+        def _round(val: Decimal) -> Decimal:
+            return val.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        def _prorate(val: Decimal) -> Decimal:
+            if twd <= 0:
+                return Decimal("0.00")
+            return _round(val * (dp / twd))
+
+        gross_pay = _prorate(salary.basic_pay) + _prorate(salary.hra) + _prorate(salary.conveyance_allowance)
+        for comp in components:
+            if comp.component_type == "allowance":
+                gross_pay += _prorate(comp.amount)
+            elif comp.component_type == "earning":
+                gross_pay += _round(comp.amount)
+
+        # Get enabled statutory deductions, skipping if override exists
+        existing_names = {c.name for c in components}
+        stat_deductions = get_statutory_deductions(db, salary.basic_pay, gross_pay, existing_names)
+        components.extend(stat_deductions)
 
         payroll_inputs.append(
             PayrollInput(

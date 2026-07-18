@@ -1,0 +1,34 @@
+{% extends "portal/portal_base.html" %}
+{% block title %}My Attendance — Employee Portal{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <h1 class="display-heading">My Attendance</h1>
+
+    <section>
+        {% if not records %}
+        <p class="text-muted">No attendance records available yet.</p>
+        {% else %}
+        <table class="app-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th class="text-end">Days Present</th>
+                    <th class="text-end">Days on Leave</th>
+                    <th class="text-end">Total Working Days</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in records %}
+                <tr>
+                    <td><strong>{{ item.period_label }}</strong></td>
+                    <td class="text-end font-mono">{{ item.days_present }}</td>
+                    <td class="text-end font-mono">{{ item.days_on_leave }}</td>
+                    <td class="text-end font-mono">{{ item.total_working_days }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

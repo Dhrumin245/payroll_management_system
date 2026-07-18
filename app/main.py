@@ -18,11 +18,11 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.dependencies import get_current_user, get_db, limiter
-from app.exceptions import NotAuthenticatedException
+from app.exceptions import NotAuthenticatedException, NotAuthorizedException
 from app.flash import flash
 from app.models import User
-from app.routers import attendance, auth, employees, payroll
-from app.services.dashboard_service import get_dashboard_data
+from app.routers import attendance, auth, employees, payroll, portal, leaves, variable_pay, settings as settings_router, analytics, users as users_router
+from app.services.dashboard_service import get_dashboard_data, get_payroll_trend, get_compensation_breakdown, get_headcount_trend
 from app.templating import render
 
 logger = logging.getLogger("app")
@@ -59,14 +59,20 @@ async def not_authenticated_handler(request: Request, exc: NotAuthenticatedExcep
     )
 
 
+@app.exception_handler(NotAuthorizedException)
+async def not_authorized_handler(request: Request, exc: NotAuthorizedException):
+    """Renders the 403 Access Denied page for role-guard failures."""
+    return render(request, "errors/403.html", status_code=403)
+
+
 # --- Styled error pages (App Flow §4.2-4.3) -----------------------------------
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     if exc.status_code == 404:
         return render(request, "errors/404.html", status_code=404)
-    # Any other HTTP exception (403 from a bad CSRF token, 429 from the rate
-    # limiter, etc.) keeps FastAPI's default behavior for now -- only 404 is
-    # in scope for Phase 3's error-page work.
+    if exc.status_code == 403:
+        return render(request, "errors/403.html", status_code=403)
+    # Any other HTTP exception keeps FastAPI's default behavior.
     return await default_http_exception_handler(request, exc)
 
 
@@ -87,6 +93,12 @@ app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(attendance.router)
 app.include_router(payroll.router)
+app.include_router(portal.router)
+app.include_router(leaves.router)
+app.include_router(variable_pay.router)
+app.include_router(settings_router.router)
+app.include_router(analytics.router)
+app.include_router(users_router.router)
 
 
 # --- Dashboard ------------------------------------------------------------
@@ -95,7 +107,14 @@ def dashboard(request: Request, user: User = Depends(get_current_user), db: Sess
     return render(
         request,
         "dashboard.html",
-        {"user": user, "active_nav": "dashboard", "dummy": get_dashboard_data(db)},
+        {
+            "user": user,
+            "active_nav": "dashboard",
+            "dummy": get_dashboard_data(db),
+            "payroll_trend": get_payroll_trend(db),
+            "comp_breakdown": get_compensation_breakdown(db),
+            "headcount_trend": get_headcount_trend(db),
+        },
     )
 
 

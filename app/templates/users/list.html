@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}User Accounts — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <div class="page-header" style="margin-bottom: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 class="display-heading" style="margin-bottom: 0;">User Accounts</h1>
+                <p class="text-muted">Manage login credentials and role assignments.</p>
+            </div>
+            <a href="/users/new" class="btn btn-primary">+ Create User</a>
+        </div>
+    </div>
+
+    <table class="app-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Linked Employee</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Created</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in all_users %}
+            <tr>
+                <td style="font-weight: 600;">{{ u.username }}</td>
+                <td>
+                    <span class="badge-pill {% if u.role == 'admin' %}badge-active{% elif u.role == 'manager' %}badge-leave{% else %}badge-pending{% endif %}" style="font-size: 12px; text-transform: capitalize;">
+                        {{ u.role }}
+                    </span>
+                </td>
+                <td>
+                    {% if u.employee_id and employee_map.get(u.employee_id) %}
+                        {{ employee_map[u.employee_id].employee_code }} — {{ employee_map[u.employee_id].full_name }}
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if u.is_active %}
+                    <span class="badge-pill badge-active" style="font-size: 12px;">Active</span>
+                    {% else %}
+                    <span class="badge-pill badge-inactive" style="font-size: 12px;">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="font-mono text-muted" style="font-size: 13px;">
+                    {% if u.last_login_at %}
+                        {{ u.last_login_at.strftime("%Y-%m-%d %H:%M") }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </td>
+                <td class="font-mono text-muted" style="font-size: 13px;">
+                    {{ u.created_at.strftime("%Y-%m-%d") }}
+                </td>
+                <td class="text-end">
+                    <div style="display: inline-flex; gap: var(--space-1);">
+                        <!-- Reset Password Button -->
+                        <button class="btn btn-secondary btn-xs"
+                                style="padding: 2px 8px; font-size: 12px;"
+                                onclick="openResetModal({{ u.id }}, '{{ u.username }}')">
+                            Reset Password
+                        </button>
+                        <!-- Toggle Active/Inactive -->
+                        {% if u.id != user.id %}
+                        <form method="post" action="/users/{{ u.id }}/toggle-active" style="margin: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-secondary btn-xs"
+                                    style="padding: 2px 8px; font-size: 12px;"
+                                    onclick="return confirm('{{ 'Deactivate' if u.is_active else 'Activate' }} user {{ u.username }}?')">
+                                {{ "Deactivate" if u.is_active else "Activate" }}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetModalOverlay" class="app-overlay" style="display: none;" onclick="closeResetModal()"></div>
+<div id="resetModal" class="app-modal" style="display: none;">
+    <div class="app-modal__card">
+        <h3 style="margin-bottom: var(--space-3);">Reset Password</h3>
+        <p class="text-muted" style="margin-bottom: var(--space-3);">
+            Set a new password for <strong id="resetModalUsername"></strong>.
+        </p>
+        <form id="resetForm" method="post" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" class="form-control" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label for="confirm_new_password">Confirm Password</label>
+                <input type="password" id="confirm_new_password" name="confirm_new_password" class="form-control" required minlength="6">
+            </div>
+            <div class="app-modal__actions">
+                <button type="button" class="btn btn-secondary" onclick="closeResetModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Reset Password</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openResetModal(userId, username) {
+    document.getElementById("resetModalOverlay").style.display = "block";
+    document.getElementById("resetModal").style.display = "block";
+    document.getElementById("resetModalUsername").textContent = username;
+    document.getElementById("resetForm").action = "/users/" + userId + "/reset-password";
+}
+function closeResetModal() {
+    document.getElementById("resetModalOverlay").style.display = "none";
+    document.getElementById("resetModal").style.display = "none";
+}
+document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") closeResetModal();
+});
+</script>
+{% endblock %}

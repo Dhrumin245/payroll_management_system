@@ -63,13 +63,19 @@ def login_submit(
 
     now = datetime.now(timezone.utc)
     request.session["user_id"] = user.id
+    request.session["user_role"] = user.role   # cached for template conditionals
     request.session["login_time"] = now.isoformat()
     request.session["last_activity"] = now.isoformat()
 
     user.last_login_at = now
     db.commit()
 
-    return RedirectResponse(url=next or "/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    if user.role == "employee":
+        redirect_url = next if (next and next.startswith("/portal")) else "/portal"
+    else:
+        redirect_url = next or "/dashboard"
+
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/logout")

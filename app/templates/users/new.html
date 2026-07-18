@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Create User — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container" style="max-width: 600px;">
+    <div class="page-header" style="margin-bottom: var(--space-4);">
+        <a href="/users" class="btn btn-secondary btn-sm" style="margin-bottom: var(--space-2); display: inline-block;">
+            &larr; Back to Users
+        </a>
+        <h1 class="display-heading" style="margin-bottom: 0;">Create User Account</h1>
+        <p class="text-muted">Set up a new login for an admin, manager, or employee.</p>
+    </div>
+
+    <form method="post" action="/users/create" class="card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <!-- Username -->
+        <div class="form-group">
+            <label for="username">Username <span style="color: var(--color-brick);">*</span></label>
+            <input type="text" id="username" name="username" class="form-control"
+                   value="{{ form_values.get('username', '') }}"
+                   required minlength="3" maxlength="50"
+                   autocomplete="off">
+            {% if form_errors.get('username') %}
+            <p class="form-error" style="color: var(--color-brick); font-size: 13px; margin-top: 4px;">{{ form_errors.username }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+            <label for="password">Password <span style="color: var(--color-brick);">*</span></label>
+            <input type="password" id="password" name="password" class="form-control"
+                   required minlength="6">
+            {% if form_errors.get('password') %}
+            <p class="form-error" style="color: var(--color-brick); font-size: 13px; margin-top: 4px;">{{ form_errors.password }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password <span style="color: var(--color-brick);">*</span></label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                   required minlength="6">
+            {% if form_errors.get('confirm_password') %}
+            <p class="form-error" style="color: var(--color-brick); font-size: 13px; margin-top: 4px;">{{ form_errors.confirm_password }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Role Selection -->
+        <div class="form-group" style="border-top: 1px solid var(--color-border); padding-top: var(--space-3); margin-top: var(--space-3);">
+            <label for="role">Role <span style="color: var(--color-brick);">*</span></label>
+            <select id="role" name="role" class="form-control" onchange="toggleEmployeeField()">
+                <option value="admin" {% if form_values.get('role') == 'admin' %}selected{% endif %}>Admin — Full system access</option>
+                <option value="manager" {% if form_values.get('role') == 'manager' %}selected{% endif %}>Manager — HR & attendance access (no payroll run)</option>
+                <option value="employee" {% if form_values.get('role') == 'employee' %}selected{% endif %}>Employee — Self-service portal only</option>
+            </select>
+            {% if form_errors.get('role') %}
+            <p class="form-error" style="color: var(--color-brick); font-size: 13px; margin-top: 4px;">{{ form_errors.role }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Employee Link (shown only when role = employee) -->
+        <div class="form-group" id="employeeLinkGroup" style="display: none;">
+            <label for="employee_id">Link to Employee Record <span style="color: var(--color-brick);">*</span></label>
+            <p class="text-muted small-note" style="margin-top: 0; margin-bottom: var(--space-1);">
+                This grants the user access to their own payslips, leave requests, and profile via the Employee Self-Service Portal.
+            </p>
+            {% if available_employees %}
+            <select id="employee_id" name="employee_id" class="form-control">
+                <option value="">— Select an employee —</option>
+                {% for emp in available_employees %}
+                <option value="{{ emp.id }}" {% if form_values.get('employee_id') == emp.id|string %}selected{% endif %}>
+                    {{ emp.employee_code }} — {{ emp.full_name }} ({{ emp.designation }})
+                </option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <p class="text-muted" style="font-size: 13px;">
+                All active employees are already linked to user accounts.
+                <a href="/employees/new">Add a new employee</a> first.
+            </p>
+            <input type="hidden" name="employee_id" value="">
+            {% endif %}
+            {% if form_errors.get('employee_id') %}
+            <p class="form-error" style="color: var(--color-brick); font-size: 13px; margin-top: 4px;">{{ form_errors.employee_id }}</p>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: var(--space-4); display: flex; gap: var(--space-2); justify-content: flex-end;">
+            <a href="/users" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleEmployeeField() {
+    var role = document.getElementById("role").value;
+    var group = document.getElementById("employeeLinkGroup");
+    group.style.display = (role === "employee") ? "block" : "none";
+}
+// Run on page load to handle re-renders with errors
+document.addEventListener("DOMContentLoaded", toggleEmployeeField);
+</script>
+{% endblock %}

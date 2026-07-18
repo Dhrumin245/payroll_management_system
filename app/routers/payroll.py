@@ -3,11 +3,12 @@ Payroll routes: history list (Screen 7), new run (Screen 8), and run
 summary (Screen 9's non-PDF portions -- payslip download and CSV export are
 Phase 4d/5's job, once PDF generation exists).
 """
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+import logging
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_current_user, get_db, require_admin
 from app.flash import flash
 from app.models import Employee, PayrollLineItem, PayrollRun, User
 from app.services.csrf import verify_csrf
@@ -21,7 +22,11 @@ from app.services.period_utils import (
     parse_period,
     period_options,
 )
+from app.services.email_service import send_payslip_email
+from app.services.bank_payout_service import generate_neft_csv
 from app.templating import render
+
+logger = logging.getLogger("app")
 
 router = APIRouter()
 
@@ -74,9 +79,10 @@ def new_payroll_run_form(
 @router.post("/payroll/run")
 def trigger_payroll_run(
     request: Request,
+    background_tasks: BackgroundTasks,
     period: str = Form(...),
     csrf_token: str = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     verify_csrf(request, csrf_token)
@@ -114,6 +120,26 @@ def trigger_payroll_run(
             "error",
         )
         return RedirectResponse(url=f"/payroll/new?period={period}", status_code=status.HTTP_303_SEE_OTHER)
+
+    # Send payslip emails as a background task if configured
+    for line_item in payroll_run.line_items:
+        emp = line_item.employee
+        if emp and emp.email:
+            try:
+                pdf_bytes = generate_payslip_pdf(line_item, format_period_label(payroll_run.period))
+                background_tasks.add_task(
+                    send_payslip_email,
+                    emp.email,
+                    line_item.employee_name_snapshot,
+                    format_period_label(payroll_run.period),
+                    pdf_bytes,
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to generate PDF for background email dispatch to %s: %s",
+                    line_item.employee_name_snapshot,
+                    str(e),
+                )
 
     flash(request, f"Payroll run completed for {format_period_label(period_date)}.", "success")
     return RedirectResponse(url=f"/payroll/{payroll_run.id}", status_code=status.HTTP_303_SEE_OTHER)
@@ -206,5 +232,63 @@ def export_payroll_csv(
     return Response(
         content=csv_content,
         media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/payroll/{run_id}/bank-file")
+def download_bank_payout_file(
+    run_id: int,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Generates and returns the bank payout (NEFT CSV) file for the payroll run."""
+    payroll_run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    if payroll_run is None:
+        raise HTTPException(status_code=404)
+
+    line_items = (
+        db.query(PayrollLineItem)
+        .filter(PayrollLineItem.payroll_run_id == run_id)
+        .order_by(PayrollLineItem.employee_code_snapshot)
+        .all()
+    )
+
+    csv_content = generate_neft_csv(line_items)
+    filename = f"bank_payout_{payroll_run.period.strftime('%Y-%m')}.csv"
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/payroll/{run_id}/export-excel")
+def export_payroll_excel_route(
+    run_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generates and returns a multi-sheet Excel spreadsheet of the payroll run."""
+    if user.role not in ("admin", "manager"):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    payroll_run = db.query(PayrollRun).filter(PayrollRun.id == run_id).first()
+    if payroll_run is None:
+        raise HTTPException(status_code=404)
+
+    line_items = (
+        db.query(PayrollLineItem)
+        .filter(PayrollLineItem.payroll_run_id == run_id)
+        .order_by(PayrollLineItem.employee_code_snapshot)
+        .all()
+    )
+
+    from app.services.excel_export_service import generate_payroll_excel
+    excel_content = generate_payroll_excel(payroll_run, line_items)
+    filename = f"payroll_{payroll_run.period.strftime('%Y-%m')}.xlsx"
+    return Response(
+        content=excel_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

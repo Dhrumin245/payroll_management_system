@@ -123,6 +123,9 @@ def calculate_payroll_for_employee(data: PayrollInput) -> PayrollResult:
         if component.component_type == "allowance":
             prorated = _prorate(component.amount, data.days_present, data.total_working_days)
             line_components.append(LineItemComponent("earning", component.name, prorated))
+        elif component.component_type == "earning":
+            amount = _round(component.amount)
+            line_components.append(LineItemComponent("earning", component.name, amount))
         elif component.component_type == "deduction":
             amount = _round(component.amount)
             line_components.append(LineItemComponent("deduction", component.name, amount))

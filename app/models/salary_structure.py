@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
@@ -25,6 +25,7 @@ class SalaryStructure(Base):
     basic_pay = Column(Numeric(12, 2), nullable=False)
     hra = Column(Numeric(12, 2), nullable=False, default=0)
     conveyance_allowance = Column(Numeric(12, 2), nullable=False, default=0)
+    effective_from = Column(Date, nullable=False, default=date(2024, 1, 1))
     created_at = Column(DateTime, nullable=False, default=_utcnow)
     updated_at = Column(DateTime, nullable=False, default=_utcnow, onupdate=_utcnow)
 

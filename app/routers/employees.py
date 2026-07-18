@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_current_user, get_db
+from app.dependencies import get_current_user, get_db, require_manager_or_above
 from app.flash import flash
 from app.models import Employee, User
 from app.services.csrf import verify_csrf
@@ -20,6 +20,7 @@ from app.services.employee_service import (
     suggest_employee_code,
     validate_employee_form,
 )
+from app.services.salary_history_service import get_salary_history
 from app.templating import render
 
 router = APIRouter()
@@ -59,7 +60,7 @@ def list_employees(
 
 
 @router.get("/employees/new")
-def new_employee_form(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def new_employee_form(request: Request, user: User = Depends(require_manager_or_above), db: Session = Depends(get_db)):
     """App Flow Screen 4."""
     suggested_code = suggest_employee_code(db)
     return render(
@@ -97,7 +98,7 @@ def create_employee(
     component_name: List[str] = Form(default=[]),
     component_amount: List[str] = Form(default=[]),
     csrf_token: str = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_manager_or_above),
     db: Session = Depends(get_db),
 ):
     verify_csrf(request, csrf_token)
@@ -138,7 +139,7 @@ def create_employee(
             status_code=400,
         )
 
-    employee = save_employee(db, data)
+    employee = save_employee(db, data, user_id=user.id)
     flash(request, "Employee added successfully.", "success")
     return RedirectResponse(url=f"/employees/{employee.id}", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -155,6 +156,7 @@ def employee_detail(
     if employee is None:
         raise HTTPException(status_code=404)
 
+    history = get_salary_history(db, employee_id)
     return render(
         request,
         "employees/form.html",
@@ -166,6 +168,7 @@ def employee_detail(
             "errors": {},
             "field_values": field_values_from_employee(employee),
             "existing_components": existing_components_for_template(employee),
+            "salary_history": history,
         },
     )
 
@@ -191,7 +194,7 @@ def update_employee(
     component_name: List[str] = Form(default=[]),
     component_amount: List[str] = Form(default=[]),
     csrf_token: str = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_manager_or_above),
     db: Session = Depends(get_db),
 ):
     verify_csrf(request, csrf_token)
@@ -221,6 +224,7 @@ def update_employee(
     errors = validate_employee_form(db, data, existing_employee_id=employee_id)
 
     if errors:
+        history = get_salary_history(db, employee_id)
         return render(
             request,
             "employees/form.html",
@@ -232,11 +236,12 @@ def update_employee(
                 "errors": errors,
                 "field_values": field_values_from_form_data(data),
                 "existing_components": components_from_submission(data),
+                "salary_history": history,
             },
             status_code=400,
         )
 
-    save_employee(db, data, employee=employee)
+    save_employee(db, data, employee=employee, user_id=user.id)
     flash(request, "Employee updated successfully.", "success")
     return RedirectResponse(url=f"/employees/{employee_id}", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -246,7 +251,7 @@ def deactivate_employee(
     request: Request,
     employee_id: int,
     csrf_token: str = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_manager_or_above),
     db: Session = Depends(get_db),
 ):
     """App Flow §3.11. NOTE: the guard against deactivating an employee with
@@ -274,7 +279,7 @@ def reactivate_employee(
     request: Request,
     employee_id: int,
     csrf_token: str = Form(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_manager_or_above),
     db: Session = Depends(get_db),
 ):
     verify_csrf(request, csrf_token)

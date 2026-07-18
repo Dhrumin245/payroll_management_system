@@ -47,6 +47,75 @@ def create_admin(username: str = typer.Option(..., prompt=True)) -> None:
         db.close()
 
 
+@cli.command("create-manager")
+def create_manager(username: str = typer.Option(..., prompt=True)) -> None:
+    """Create a payroll-manager user account (role='manager').
+
+    Managers can view/edit employees and enter attendance, but cannot
+    trigger payroll runs (admin-only).
+    """
+    password = getpass.getpass("Password: ")
+    confirm = getpass.getpass("Confirm password: ")
+    if password != confirm:
+        typer.echo("Passwords do not match.")
+        raise typer.Exit(code=1)
+    if not password:
+        typer.echo("Password cannot be empty.")
+        raise typer.Exit(code=1)
+
+    db = SessionLocal()
+    try:
+        if db.query(User).filter(User.username == username).first():
+            typer.echo(f"A user named '{username}' already exists.")
+            raise typer.Exit(code=1)
+
+        user = User(username=username, password_hash=hash_password(password), role="manager")
+        db.add(user)
+        db.commit()
+        typer.echo(f"Manager user '{username}' created.")
+    finally:
+        db.close()
+
+
+@cli.command("link-employee")
+def link_employee(
+    username: str = typer.Option(..., prompt=True),
+    employee_code: str = typer.Option(..., prompt=True),
+) -> None:
+    """Link an existing employee record to a User account for self-service login.
+
+    Sets the user's role to 'employee' and assigns their employee_id.
+    If the user does not exist yet, a new one is created (password is prompted).
+    """
+    db = SessionLocal()
+    try:
+        employee = db.query(Employee).filter(Employee.employee_code == employee_code).first()
+        if employee is None:
+            typer.echo(f"No employee found with code '{employee_code}'.")
+            raise typer.Exit(code=1)
+
+        user = db.query(User).filter(User.username == username).first()
+        if user is None:
+            password = getpass.getpass(f"Password for new user '{username}': ")
+            confirm = getpass.getpass("Confirm password: ")
+            if password != confirm:
+                typer.echo("Passwords do not match.")
+                raise typer.Exit(code=1)
+            if not password:
+                typer.echo("Password cannot be empty.")
+                raise typer.Exit(code=1)
+            user = User(username=username, password_hash=hash_password(password), role="employee")
+            db.add(user)
+            db.flush()
+
+        user.role = "employee"
+        user.employee_id = employee.id
+        db.commit()
+        typer.echo(f"User '{username}' linked to employee {employee_code} ({employee.full_name}).")
+    finally:
+        db.close()
+
+
 # Fictional sample data only — never real employees, per the PRD's
 # assumption that this is a portfolio/demo project.
 _SAMPLE_EMPLOYEES = [

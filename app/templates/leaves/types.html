@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Configure Leave Types — Payroll Management System{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <h1 class="display-heading">Configure Leave Types</h1>
+
+    <div class="quick-actions" style="margin-bottom: var(--space-4);">
+        <a href="/leaves" class="btn btn-secondary btn-sm">Back to Leaves List</a>
+    </div>
+
+    <div class="row" style="gap: var(--space-4);">
+        <!-- Existing Types -->
+        <div class="col-md-6 card" style="padding: var(--space-4);">
+            <h3 style="font-family: var(--font-display); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">Active Leave Configurations</h3>
+            {% if not leave_types %}
+            <p class="text-muted">No leave types configured yet.</p>
+            {% else %}
+            <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                {% for lt in leave_types %}
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--color-border); padding-bottom: var(--space-2);">
+                    <div>
+                        <strong>{{ lt.name }}</strong>
+                        <span class="badge" style="font-size: 0.75rem; background: {{ 'var(--color-forest)' if lt.is_paid else 'var(--color-brick)' }};">
+                            {{ 'Paid' if lt.is_paid else 'Unpaid' }}
+                        </span>
+                    </div>
+                    <span class="font-mono text-muted">
+                        {% if lt.max_days_per_year is not none %}
+                        Max {{ lt.max_days_per_year }} days/year
+                        {% else %}
+                        Unlimited
+                        {% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Leave Type Form -->
+        <div class="col-md-5 card" style="padding: var(--space-4);">
+            <h3 style="font-family: var(--font-display); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-2); margin-bottom: var(--space-3);">Add Leave Type</h3>
+            <form method="post" action="/leaves/types/new">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Leave Type Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required placeholder="e.g. Sick Leave, Annual Leave">
+                </div>
+
+                <div class="mb-3">
+                    <label for="max_days" class="form-label">Annual Entitlement (Days)</label>
+                    <input type="number" step="0.5" class="form-control" id="max_days" name="max_days" placeholder="e.g. 12 (leave blank for unlimited)">
+                </div>
+
+                <div class="mb-3">
+                    <label for="is_paid" class="form-label">Classification</label>
+                    <select class="form-select" id="is_paid" name="is_paid" required>
+                        <option value="1">Paid Leave</option>
+                        <option value="0">Unpaid Leave</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Save Config</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

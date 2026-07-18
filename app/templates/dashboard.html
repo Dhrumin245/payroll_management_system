@@ -22,14 +22,60 @@
         <div class="card">
             <div class="summary-card__label">Last Run Net Pay</div>
             <div class="summary-card__value font-mono">{{ dummy.last_run_net_pay }}</div>
+            {% if dummy.net_pay_delta %}
+            <div class="delta-indicator delta-indicator--{{ dummy.net_pay_delta.direction }}">
+                {% if dummy.net_pay_delta.direction == 'up' %}
+                ▲
+                {% elif dummy.net_pay_delta.direction == 'down' %}
+                ▼
+                {% else %}
+                •
+                {% endif %}
+                {{ dummy.net_pay_delta.pct }}% vs last month
+            </div>
+            {% endif %}
         </div>
     </div>
 
-    <div class="quick-actions">
+    {% if user.role in ('admin', 'manager') %}
+    <div class="quick-actions" style="margin-bottom: var(--space-5);">
         <a href="/employees/new" class="btn btn-primary">+ Add Employee</a>
         <a href="/attendance" class="btn btn-primary">Enter Attendance</a>
+        {% if user.role == 'admin' %}
         <a href="/payroll/new" class="btn btn-primary">Run Payroll</a>
+        {% endif %}
     </div>
+    {% endif %}
+
+    {% if user.role in ('admin', 'manager') and dummy.has_any_runs %}
+    <section style="margin-bottom: var(--space-5);">
+        <h2>Analytics Overview</h2>
+        
+        <!-- Spend Trend Chart: Full Width -->
+        <div class="chart-card" style="margin-bottom: var(--space-4);">
+            <h3>Payroll Spend Trend (Last 12 Months)</h3>
+            <div class="chart-container">
+                <canvas id="payrollTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Breakdown & Headcount Grid: Two Columns -->
+        <div class="analytics-grid">
+            <div class="chart-card">
+                <h3>Compensation Breakdown ({{ comp_breakdown.period or 'Latest Run' }})</h3>
+                <div class="chart-container">
+                    <canvas id="compBreakdownChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>Headcount Trend (Last 12 Months)</h3>
+                <div class="chart-container">
+                    <canvas id="headcountTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     <section>
         <h2>Recent Payroll Runs</h2>
@@ -59,4 +105,110 @@
         {% endif %}
     </section>
 </div>
+
+{% if user.role in ('admin', 'manager') and dummy.has_any_runs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Payroll Spend Trend (Line Chart)
+    const trendData = {{ payroll_trend | tojson }};
+    const labels = trendData.map(d => d.period);
+    const grossData = trendData.map(d => d.total_gross);
+    const netData = trendData.map(d => d.total_net_pay);
+
+    new Chart(document.getElementById("payrollTrendChart"), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Gross Pay (₹)',
+                    data: grossData,
+                    borderColor: '#B8863B',
+                    backgroundColor: 'rgba(184, 134, 59, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Net Pay (₹)',
+                    data: netData,
+                    borderColor: '#1B2A4A',
+                    backgroundColor: 'rgba(27, 42, 74, 0.05)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) { return '₹' + value.toLocaleString(); }
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. Compensation Breakdown (Doughnut Chart)
+    const compData = {{ comp_breakdown | tojson }};
+    new Chart(document.getElementById("compBreakdownChart"), {
+        type: 'doughnut',
+        data: {
+            labels: compData.categories,
+            datasets: [{
+                data: compData.values,
+                backgroundColor: [
+                    '#1B2A4A', '#B8863B', '#2E7D5B', '#B54B3F',
+                    '#4F46E5', '#06B6D4', '#10B981', '#F59E0B', '#6B7280'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    // 3. Headcount Trend (Bar Chart)
+    const headcountData = {{ headcount_trend | tojson }};
+    new Chart(document.getElementById("headcountTrendChart"), {
+        type: 'bar',
+        data: {
+            labels: headcountData.map(d => d.period),
+            datasets: [{
+                label: 'Active Employees',
+                data: headcountData.map(d => d.employee_count),
+                backgroundColor: '#2E7D5B',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

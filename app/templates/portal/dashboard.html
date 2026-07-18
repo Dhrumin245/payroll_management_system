@@ -1,0 +1,48 @@
+{% extends "portal/portal_base.html" %}
+{% block title %}Dashboard — Employee Portal{% endblock %}
+{% block content %}
+<div class="container app-container">
+    <h1 class="display-heading">Welcome, {{ employee.full_name }}</h1>
+
+    <div class="summary-cards">
+        <div class="card">
+            <div class="summary-card__label">Designation</div>
+            <div class="summary-card__value" style="font-size: 1.5rem; font-weight: 500;">{{ employee.designation }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Joining Date</div>
+            <div class="summary-card__value" style="font-size: 1.5rem; font-weight: 500;">{{ employee.joining_date.strftime('%B %d, %Y') }}</div>
+        </div>
+        <div class="card">
+            <div class="summary-card__label">Latest Net Pay</div>
+            <div class="summary-card__value font-mono">
+                {% if last_payslip %}
+                ₹{{ "{:,.2f}".format(last_payslip.net_pay) }}
+                {% else %}
+                —
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-actions" style="margin-top: var(--space-4);">
+        <a href="/portal/payslips" class="btn btn-primary">View All Payslips</a>
+        <a href="/portal/attendance" class="btn btn-primary">View Attendance History</a>
+    </div>
+
+    {% if last_payslip %}
+    <section style="margin-top: var(--space-5);">
+        <h2>Latest Payslip</h2>
+        <div class="card" style="padding: var(--space-4); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
+            <div>
+                <h4 style="margin: 0; font-family: var(--font-display);">Period: {{ last_payslip.payroll_run.period.strftime('%B %Y') }}</h4>
+                <p class="text-muted" style="margin: var(--space-1) 0 0 0;">Gross Pay: ₹{{ "{:,.2f}".format(last_payslip.gross_pay) }} | Deductions: ₹{{ "{:,.2f}".format(last_payslip.total_deductions) }}</p>
+            </div>
+            <div>
+                <a href="/portal/payslips/{{ last_payslip.payroll_run_id }}" class="btn btn-primary">Download PDF</a>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}
